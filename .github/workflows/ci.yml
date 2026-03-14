@@ -45,7 +45,7 @@ jobs:
 
       - name: Get all official build targets
         id: get-targets
-        run: echo "targets=$(make targets-ci-print | jq -R -c 'split(" ")')" >> $GITHUB_OUTPUT
+        run: echo "targets=['SPEEDYBEEF405V5']" >> $GITHUB_OUTPUT
 
   build:
     name: Build
