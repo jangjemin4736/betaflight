@@ -850,25 +850,26 @@ FAST_CODE_NOINLINE void mixTable(timeUs_t currentTimeUs)
         // Apply the mix to motor endpoints
         applyMixToMotors(motorMix, activeMixer);
        
-        // --- 여기부터 복사해서 넣으세요 ---
-        // 1. 모터 잠김 방지: 스로틀이 올라갔을 때만(1005 초과) 사인파 가산
-        if (motor[0] > 1005 && debugMode == DEBUG_MAX7456_SIGNAL) {
-            float actualHz = (float)getDshotRpmAverage() / 420.0f;
-            if (actualHz < 1.0f) actualHz = 1.0f;
+        // else 문 안의 applyMixToMotors(motorMix, activeMixer); 바로 아래에 넣으세요.
 
-            float amplitude = 10.0f;
-            // mixerUpdate 함수 내부라면 currentTimeUs 변수를 그대로 쓸 수 있습니다.
-            float timeSeconds = (float)currentTimeUs / 1000000.0f; 
-            float theta = 6.2831853f * actualHz * timeSeconds;
-            
-            motor[0] += (int16_t)(sinf(theta) * amplitude);
-        }
+// 수정된 조건: 시동이 걸려있고(ARMED), 스로틀을 올렸을 때만 작동
+if (ARMING_FLAG(ARMED) && motor[0] > 1010 && debugMode == DEBUG_MAX7456_SIGNAL) {
+    
+    float actualHz = (float)getDshotRpmAverage() / 420.0f;
+    // RPM 데이터가 아직 안 들어올 때를 대비해 안전값 설정
+    if (actualHz < 10.0f) actualHz = 50.0f; 
 
-        // 2. 최종 범위 제한 (1000~2000 유지)
-        for (int i = 0; i < 4; i++) {
-            motor[i] = (int16_t)constrain(motor[i], 1000, 2000);
-        }
-        // --- 여기까지 ---
+    float amplitude = 10.0f;
+    float timeSeconds = (float)currentTimeUs / 1000000.0f; 
+    float theta = 6.2831853f * actualHz * timeSeconds;
+    
+    motor[0] += (int16_t)(sinf(theta) * amplitude);
+}
+
+// 범위 제한은 동일하게 유지
+for (int i = 0; i < 4; i++) {
+    motor[i] = (int16_t)constrain(motor[i], 1000, 2000);
+}
         
     }
 }
