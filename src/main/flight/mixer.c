@@ -850,23 +850,30 @@ FAST_CODE_NOINLINE void mixTable(timeUs_t currentTimeUs)
         // Apply the mix to motor endpoints
         applyMixToMotors(motorMix, activeMixer);
        
-     // [수정된 로직] motor[0]이 1030보다 클 때만 사인파 계산을 시작합니다.
-// [수정 제안]
-if (ARMING_FLAG(ARMED) && motor[0] > 1030 && debugMode == DEBUG_MAX7456_SIGNAL) {
-    float actualHz = (float)getDshotRpmAverage() / 420.0f;
-    if (actualHz < 10.0f) actualHz = 50.0f; 
+    // 2. 실험용 사인파 주입 (시동 상태 + 특정 디버그 모드일 때만)
+        if (ARMING_FLAG(ARMED) && debugMode == DEBUG_MAX7456_SIGNAL) {
+            
+            // [수정] 1030 대신: (최소 출력 + 전체 범위의 3%) 지점을 임계값으로 설정
+            // 이렇게 하면 어떤 변속기 설정에서도 '아이들링보다 조금 높은 상태'를 정확히 잡습니다.
+            float throttleThreshold = mixerRuntime.motorOutputLow + (mixerRuntime.motorOutputHigh - mixerRuntime.motorOutputLow) * 0.03f;
 
-    float timeSeconds = (float)currentTimeUs / 1000000.0f; 
-    
-    // motor[0]에 사인파 진동 주입
-    motor[0] += (sinf(6.2831853f * actualHz * timeSeconds) * 10.0f);
-}
+            if (motor[0] > throttleThreshold) {
+                // RPM 주파수 계산
+                float actualHz = (float)getDshotRpmAverage() / 420.0f;
+                if (actualHz < 10.0f) actualHz = 50.0f; 
 
-// [핵심] 모든 모터(0번 포함)를 안전하게 1000~2000으로 제한
-// i < 4 대신 mixerRuntime.motorCount를 쓰면 메모리 오류를 완벽히 막습니다.
-for (int i = 0; i < mixerRuntime.motorCount; i++) {
-    motor[i] = (int16_t)constrainf(motor[i], 1000.0f, 2000.0f);
-}///여기가끝
+                float timeSeconds = (float)currentTimeUs / 1000000.0f;
+
+                // 사인파 주입 (진폭 10)
+                motor[0] += (sinf(6.2831853f * actualHz * timeSeconds) * 10.0f);
+            }
+        }
+
+        // 3. [최종 안전 울타리] 시스템이 허용하는 최소/최대값으로 완벽하게 제한
+        // 여기서 mixerRuntime.motorOutputLow와 High를 사용하므로 1000~2024 범위를 자동으로 지킵니다.
+        for (int i = 0; i < mixerRuntime.motorCount; i++) {
+            motor[i] = constrainf(motor[i], mixerRuntime.motorOutputLow, mixerRuntime.motorOutputHigh);
+        }
         
     }
 }
