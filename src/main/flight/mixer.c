@@ -851,24 +851,22 @@ FAST_CODE_NOINLINE void mixTable(timeUs_t currentTimeUs)
         applyMixToMotors(motorMix, activeMixer);
        
      // [수정된 로직] motor[0]이 1030보다 클 때만 사인파 계산을 시작합니다.
+// [수정 제안]
 if (ARMING_FLAG(ARMED) && motor[0] > 1030 && debugMode == DEBUG_MAX7456_SIGNAL) {
-    
     float actualHz = (float)getDshotRpmAverage() / 420.0f;
-    // RPM 데이터가 없을 때를 대비한 기본 Hz
     if (actualHz < 10.0f) actualHz = 50.0f; 
 
     float timeSeconds = (float)currentTimeUs / 1000000.0f; 
     
-    // 진폭 10을 더해도 1030 - 10 = 1020이므로 1000 근처엔 얼씬도 못합니다.
-    motor[0] += (int16_t)(sinf(6.2831853f * actualHz * timeSeconds) * 10.0f);
+    // motor[0]에 사인파 진동 주입
+    motor[0] += (sinf(6.2831853f * actualHz * timeSeconds) * 10.0f);
 }
 
-// 최종적으로 한 번 더 묶어주기 (이건 필수!)
-motor[0] = (int16_t)constrain(motor[0], 1000, 2000);
-
-for (int i = 1; i < 4; i++) {
-    motor[i] = (int16_t)constrain(motor[i], 1000, 2000);
-}  ///여기가끝
+// [핵심] 모든 모터(0번 포함)를 안전하게 1000~2000으로 제한
+// i < 4 대신 mixerRuntime.motorCount를 쓰면 메모리 오류를 완벽히 막습니다.
+for (int i = 0; i < mixerRuntime.motorCount; i++) {
+    motor[i] = (int16_t)constrainf(motor[i], 1000.0f, 2000.0f);
+}///여기가끝
         
     }
 }
