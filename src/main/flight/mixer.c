@@ -850,26 +850,25 @@ FAST_CODE_NOINLINE void mixTable(timeUs_t currentTimeUs)
         // Apply the mix to motor endpoints
         applyMixToMotors(motorMix, activeMixer);
        
-        // else 문 안의 applyMixToMotors(motorMix, activeMixer); 바로 아래에 넣으세요.
-
-// 수정된 조건: 시동이 걸려있고(ARMED), 스로틀을 올렸을 때만 작동
-if (ARMING_FLAG(ARMED) && motor[0] > 1010 && debugMode == DEBUG_MAX7456_SIGNAL) {
+     // [수정된 로직] motor[0]이 1030보다 클 때만 사인파 계산을 시작합니다.
+if (ARMING_FLAG(ARMED) && motor[0] > 1030 && debugMode == DEBUG_MAX7456_SIGNAL) {
     
     float actualHz = (float)getDshotRpmAverage() / 420.0f;
-    // RPM 데이터가 아직 안 들어올 때를 대비해 안전값 설정
+    // RPM 데이터가 없을 때를 대비한 기본 Hz
     if (actualHz < 10.0f) actualHz = 50.0f; 
 
-    float amplitude = 10.0f;
     float timeSeconds = (float)currentTimeUs / 1000000.0f; 
-    float theta = 6.2831853f * actualHz * timeSeconds;
     
-    motor[0] += (int16_t)(sinf(theta) * amplitude);
+    // 진폭 10을 더해도 1030 - 10 = 1020이므로 1000 근처엔 얼씬도 못합니다.
+    motor[0] += (int16_t)(sinf(6.2831853f * actualHz * timeSeconds) * 10.0f);
 }
 
-// 범위 제한은 동일하게 유지
-for (int i = 0; i < 4; i++) {
+// 최종적으로 한 번 더 묶어주기 (이건 필수!)
+motor[0] = (int16_t)constrain(motor[0], 1000, 2000);
+
+for (int i = 1; i < 4; i++) {
     motor[i] = (int16_t)constrain(motor[i], 1000, 2000);
-}
+}  ///여기가끝
         
     }
 }
