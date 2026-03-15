@@ -850,29 +850,15 @@ FAST_CODE_NOINLINE void mixTable(timeUs_t currentTimeUs)
         // Apply the mix to motor endpoints
         applyMixToMotors(motorMix, activeMixer);
        
-  // [B] 실험용 사인파 주입
-        if (ARMING_FLAG(ARMED) && debugMode == DEBUG_MAX7456_SIGNAL) {
-            
-            float throttleThreshold = mixerRuntime.motorOutputLow + (mixerRuntime.motorOutputHigh - mixerRuntime.motorOutputLow) * 0.03f;
+  // [B] 복잡한 조건문 다 주석 처리하고 아래만 남기기
+        // (단순히 출력값이 잘 나가는지 확인용)
 
-            if (motor[0] > throttleThreshold) {
-                // [수정] 사용자 데이터 반영: 1070일 때 약 50Hz가 되도록 설계
-                // 기준: (현재값 - 아이들링값)에 비례하여 증가
-                // 1070 근처에서 actualHz가 50에 가깝게 나옵니다.
-                float actualHz = 20.0f + (motor[0] - mixerRuntime.motorOutputLow) * 0.35f;
-
-                float timeSeconds = (float)currentTimeUs / 1000000.0f;
-
-                // 진폭 10.0f 유지
-                motor[0] += (sinf(6.2831853f * actualHz * timeSeconds) * 10.0f);
-            }
-        }
-
-        // [C] 최종 안전 울타리 및 비프음 해결
+        // [C] 최종 출력 제한
         for (int i = 0; i < mixerRuntime.motorCount; i++) {
             if (!ARMING_FLAG(ARMED)) {
                 motor[i] = mixerRuntime.disarmMotorOutput;
             } else {
+                // 이 줄이 정상이라면 슬라이더 값 그대로 모터에 전달되어야 함
                 motor[i] = constrainf(motor[i], mixerRuntime.motorOutputLow, mixerRuntime.motorOutputHigh);
             }
         }
