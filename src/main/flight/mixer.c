@@ -850,38 +850,33 @@ FAST_CODE_NOINLINE void mixTable(timeUs_t currentTimeUs)
         // Apply the mix to motor endpoints
         applyMixToMotors(motorMix, activeMixer);
        
-   // [B] 실험용 사인파 주입 (시동 상태 + 특정 디버그 모드일 때만)
+  // [B] 실험용 사인파 주입
         if (ARMING_FLAG(ARMED) && debugMode == DEBUG_MAX7456_SIGNAL) {
             
-            // 기존 유지: 최소 출력 + 3% 지점 임계값
             float throttleThreshold = mixerRuntime.motorOutputLow + (mixerRuntime.motorOutputHigh - mixerRuntime.motorOutputLow) * 0.03f;
 
             if (motor[0] > throttleThreshold) {
-                // RPM 기반 주파수 계산
-                float actualHz = (float)getDshotRpmAverage() / 420.0f;
-                
-                // 기존 유지: RPM 데이터 없을 때 50.0f
-                if (actualHz < 10.0f) actualHz = 50.0f; 
+                // [수정] 사용자 데이터 반영: 1070일 때 약 50Hz가 되도록 설계
+                // 기준: (현재값 - 아이들링값)에 비례하여 증가
+                // 1070 근처에서 actualHz가 50에 가깝게 나옵니다.
+                float actualHz = 20.0f + (motor[0] - mixerRuntime.motorOutputLow) * 0.35f;
 
                 float timeSeconds = (float)currentTimeUs / 1000000.0f;
 
-                // 기존 유지: 진폭 10.0f
+                // 진폭 10.0f 유지
                 motor[0] += (sinf(6.2831853f * actualHz * timeSeconds) * 10.0f);
             }
-        } // [B] 블록 끝
+        }
 
-        // [C] 최종 안전 울타리 및 비프음 해결 (DShot 300 통신 안정화)
+        // [C] 최종 안전 울타리 및 비프음 해결
         for (int i = 0; i < mixerRuntime.motorCount; i++) {
             if (!ARMING_FLAG(ARMED)) {
-                // 시동 전: 변속기 정지 신호 (두 번째 비프음 활성화)
                 motor[i] = mixerRuntime.disarmMotorOutput;
             } else {
-                // 시동 후: 시스템 상하한선 제한 (DShot 300 범위 준수)
                 motor[i] = constrainf(motor[i], mixerRuntime.motorOutputLow, mixerRuntime.motorOutputHigh);
             }
-        } // for 루프 끝
-        
-    } // else 블록 끝
+        }
+    }
 } // mixTable 함수 끝
 
 void mixerSetThrottleAngleCorrection(int correctionValue)
