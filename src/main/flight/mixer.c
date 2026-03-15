@@ -850,30 +850,36 @@ FAST_CODE_NOINLINE void mixTable(timeUs_t currentTimeUs)
         // Apply the mix to motor endpoints
         applyMixToMotors(motorMix, activeMixer);
        
-    // 2. 실험용 사인파 주입 (시동 상태 + 특정 디버그 모드일 때만)
+    // [B] 실험용 사인파 주입 (시동 상태 + 특정 디버그 모드일 때만)
         if (ARMING_FLAG(ARMED) && debugMode == DEBUG_MAX7456_SIGNAL) {
             
-            // [수정] 1030 대신: (최소 출력 + 전체 범위의 3%) 지점을 임계값으로 설정
-            // 이렇게 하면 어떤 변속기 설정에서도 '아이들링보다 조금 높은 상태'를 정확히 잡습니다.
+            // DShot600에서 모터가 확실히 회전하는 임계값 설정 (아이들링 대비 약 3% 상단)
             float throttleThreshold = mixerRuntime.motorOutputLow + (mixerRuntime.motorOutputHigh - mixerRuntime.motorOutputLow) * 0.03f;
 
+            // 1번 모터(motor[0])가 임계값보다 높을 때만 진동 주입
             if (motor[0] > throttleThreshold) {
-                // RPM 주파수 계산
+                // RPM 데이터 기반 주파수 계산 (데이터 없으면 50Hz)
                 float actualHz = (float)getDshotRpmAverage() / 420.0f;
                 if (actualHz < 10.0f) actualHz = 50.0f; 
 
+                // 시스템 가동 시간(초)
                 float timeSeconds = (float)currentTimeUs / 1000000.0f;
 
-                // 사인파 주입 (진폭 10)
+                // 사인파 주입 (DShot 신호 단위에 맞춘 진폭 10)
                 motor[0] += (sinf(6.2831853f * actualHz * timeSeconds) * 10.0f);
             }
         }
 
-        // 3. [최종 안전 울타리] 시스템이 허용하는 최소/최대값으로 완벽하게 제한
-        // 여기서 mixerRuntime.motorOutputLow와 High를 사용하므로 1000~2024 범위를 자동으로 지킵니다.
+        // [C] 최종 안전 울타리 및 비프음(인증) 해결
         for (int i = 0; i < mixerRuntime.motorCount; i++) {
-            motor[i] = constrainf(motor[i], mixerRuntime.motorOutputLow, mixerRuntime.motorOutputHigh);
-        }
+            if (!ARMING_FLAG(ARMED)) {
+                // 시동이 꺼져 있을 때는 'DShot 정지 신호'인 disarmMotorOutput을 강제 주입
+                // 이 코드가 있어야 "띠리링~" 하는 두 번째 비프음이 들립니다.
+                motor[i] = mixerRuntime.disarmMotorOutput;
+            } else {
+                // 시동 중에는 시스템이 허용하는 최소/최대 범위(0~2047 등) 내로 제한
+                motor[i] = constrainf(motor[i], mixerRuntime.motorOutputLow, mixerRuntime.motorOutputHigh);
+            }///끝
         
     }
 }
