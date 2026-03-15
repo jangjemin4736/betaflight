@@ -850,18 +850,29 @@ FAST_CODE_NOINLINE void mixTable(timeUs_t currentTimeUs)
         // Apply the mix to motor endpoints
         applyMixToMotors(motorMix, activeMixer);
        
-  // [B] 복잡한 조건문 다 주석 처리하고 아래만 남기기
-        // (단순히 출력값이 잘 나가는지 확인용)
+  // [2] 우리가 추가할 부분: 기존 로직 '뒤'에 살짝 덧붙입니다.
+    if (ARMING_FLAG(ARMED) && debugMode == DEBUG_MAX7456_SIGNAL) {
+        
+        // 안전을 위해 1번 모터가 일정 출력 이상일 때만 작동
+        if (motor[0] > 1050) { 
+            // 1070에서 50Hz가 되도록 계산된 식 (사용자 데이터 반영)
+            float actualHz = 20.0f + (motor[0] - 1030) * 0.35f;
+            float timeSeconds = (float)currentTimeUs / 1000000.0f;
 
-        // [C] 최종 출력 제한
-        for (int i = 0; i < mixerRuntime.motorCount; i++) {
-            if (!ARMING_FLAG(ARMED)) {
-                motor[i] = mixerRuntime.disarmMotorOutput;
-            } else {
-                // 이 줄이 정상이라면 슬라이더 값 그대로 모터에 전달되어야 함
-                motor[i] = constrainf(motor[i], mixerRuntime.motorOutputLow, mixerRuntime.motorOutputHigh);
-            }
+            // 진폭 10.0f 유지 (1번 모터에만 사인파 주입)
+            motor[0] += (sinf(6.2831853f * actualHz * timeSeconds) * 10.0f);
         }
+    }
+
+    // [3] 최종 안전 장치: 모든 모터에 대해 범위 제한만 수행
+    for (int i = 0; i < mixerRuntime.motorCount; i++) {
+        motor[i] = constrainf(motor[i], mixerRuntime.motorOutputLow, mixerRuntime.motorOutputHigh);
+        
+        // 시동이 안 걸렸을 때는 강제로 정지 신호
+        if (!ARMING_FLAG(ARMED)) {
+            motor[i] = mixerRuntime.disarmMotorOutput;
+        }
+    }
     }
 } // mixTable 함수 끝
 
