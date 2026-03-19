@@ -849,23 +849,25 @@ FAST_CODE_NOINLINE void mixTable(timeUs_t currentTimeUs)
     } else {
         // Apply the mix to motor endpoints
         applyMixToMotors(motorMix, activeMixer);
-   // [2] 시동 중이고 실험용 디버그 모드일 때
+  
+        
+        // [2] 1번 모터 미세 진동 주입 (진폭 5)
     if (ARMING_FLAG(ARMED) && debugMode == DEBUG_MAX7456_SIGNAL) {
         
-        // 스로틀이 1065~1080 사이일 때만 (우리가 타겟팅한 1070 부근)
-        if (motor[0] > 1065 && motor[0] < 1080) {
+        // 1065~1085 구간 (타겟 1070 부근)
+        if (motor[0] > 1065 && motor[0] < 1085) {
             
-            // 타겟 주파수 고정: 50Hz (3000 RPM 실험용)
-            float targetHz = 50.0f; 
-            float timeSeconds = (float)currentTimeUs / 1000000.0f;
-
-            // 진폭을 20.0f로 높여서 소리가 더 잘 들리게 설정
-            // motor[0] 값에 직접 사인파를 더함
-            motor[0] += (sinf(2.0f * M_PIf * targetHz * timeSeconds) * 20.0f);
+            // 50Hz (0.02초 주기) 구현: 10000us마다 반전
+            // 진폭을 5로 낮추어 신호 안정성 확보
+            if ((currentTimeUs / 10000) % 2) {
+                motor[0] += 5;
+            } else {
+                motor[0] -= 5;
+            }
         }
     }
 
-    // [3] 안전 제한 (순정 로직)
+    // [3] 최종 출력 범위 제한 (DShot 패킷 규격 준수)
     for (int i = 0; i < mixerRuntime.motorCount; i++) {
         if (ARMING_FLAG(ARMED)) {
             motor[i] = constrainf(motor[i], mixerRuntime.motorOutputLow, mixerRuntime.motorOutputHigh);
