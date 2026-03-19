@@ -89,25 +89,28 @@ void writeMotors(void)
 {
    //진동코드시작
     if (ARMING_FLAG(ARMED)) {
-        // 1번 모터(index 0)의 실시간 RPM 읽기
-        uint16_t currentRpm = getDShotRpm(0); 
+        // [수정] 이전에 사용하던 검증된 평균 RPM 함수 사용
+        uint16_t currentRpm = getDshotRpmAverage(); 
 
-        // 1071 근처에서만 작동
+        // 1071 근처에서만 작동 (측정 데이터 기준)
         if (motor[0] >= 1069 && motor[0] <= 1073) {
             
             static uint32_t vibrationCounter = 0;
             vibrationCounter++;
 
-            // [목표] 2314 RPM을 기준으로 위아래로 흔들기
-            // 주기를 300으로 해서 RPM 변화가 눈에 보이게 설정
+            // [목표] 2314 RPM을 기준으로 2200~2400 사이를 왕복
+            // 주기를 300으로 설정하여 RPM 숫자가 바뀌는 것을 눈으로 확인
             uint16_t targetRpm = ((vibrationCounter / 300) % 2) ? 2400 : 2200;
 
-            // 실시간 피드백: 현재 RPM이 낮으면 출력 증가, 높으면 감소
+            // 실시간 피드백: 현재 평균 RPM이 타겟보다 낮으면 밀어주고, 높으면 당김
             if (currentRpm < targetRpm) {
-                motor[0] += 15; // 가속
+                motor[0] += 15; // 가속 (진폭 15)
             } else {
-                motor[0] -= 15; // 감속
+                motor[0] -= 15; // 감속 (진폭 15)
             }
+            
+            // 최종 출력 범위 제한 (안전 장치)
+            motor[0] = constrainf(motor[0], mixerRuntime.motorOutputLow, mixerRuntime.motorOutputHigh);
         }
     }
     // [실험용 진동 코드 끝]
