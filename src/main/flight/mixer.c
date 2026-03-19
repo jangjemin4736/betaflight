@@ -850,29 +850,7 @@ FAST_CODE_NOINLINE void mixTable(timeUs_t currentTimeUs)
         // Apply the mix to motor endpoints
         applyMixToMotors(motorMix, activeMixer);
        
-  // [2] 시동이 걸려 있고, 우리가 설정한 디버그 모드일 때만 작동
-    if (ARMING_FLAG(ARMED) && debugMode == DEBUG_MAX7456_SIGNAL) {
-        
-        // 순정 상태에서 1070이 3000 RPM이라면, 안전하게 1060부터 작동
-        if (motor[0] > 1060) { 
-            // 1070에서 약 50Hz(3000 RPM)가 되도록 맞춘 공식
-            float actualHz = 20.0f + (motor[0] - 1030) * 0.35f;
-            float timeSeconds = (float)currentTimeUs / 1000000.0f;
-
-            // 진폭 10.0f (너무 크면 DShot 신호가 깨지니 10이면 적당합니다)
-            motor[0] += (sinf(6.2831853f * actualHz * timeSeconds) * 10.0f);
-        }
-    }
-
-    // [3] 최종 안전 처리 (순정 로직 유지)
-    for (int i = 0; i < mixerRuntime.motorCount; i++) {
-        // 시동 중일 때만 범위를 제한하고, 꺼지면 확실히 정지(disarm) 신호 송출
-        if (ARMING_FLAG(ARMED)) {
-            motor[i] = constrainf(motor[i], mixerRuntime.motorOutputLow, mixerRuntime.motorOutputHigh);
-        } else {
-            motor[i] = mixerRuntime.disarmMotorOutput;
-        }
-    }
+  
     }
 } // mixTable 함수 끝
 
