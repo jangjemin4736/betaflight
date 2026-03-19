@@ -850,33 +850,22 @@ FAST_CODE_NOINLINE void mixTable(timeUs_t currentTimeUs)
         // Apply the mix to motor endpoints
         applyMixToMotors(motorMix, activeMixer);
   
-        
-        // [2] 1번 모터 미세 진동 주입 (진폭 5)
-    if (ARMING_FLAG(ARMED) && debugMode == DEBUG_MAX7456_SIGNAL) {
-        
-        // 1065~1085 구간 (타겟 1070 부근)
+         
+  
+    }
+
+    // [최하단 삽입] 1번 모터 실험용 진동 주입
+    if (debugMode == DEBUG_MAX7456_SIGNAL && ARMING_FLAG(ARMED)) {
+        // 스로틀이 1070 부근일 때만 작동 (실수로 날아오르는 것 방지)
         if (motor[0] > 1065 && motor[0] < 1085) {
-            
-            // 50Hz (0.02초 주기) 구현: 10000us마다 반전
-            // 진폭을 5로 낮추어 신호 안정성 확보
-            if ((currentTimeUs / 10000) % 2) {
-                motor[0] += 5;
-            } else {
-                motor[0] -= 5;
-            }
+            // 연산 부하가 없는 정수형 변조 (진폭 5)
+            // 10000us(0.01초) 마다 +5, -5를 반복하여 약 50Hz 진동 생성
+            motor[0] += ((currentTimeUs / 10000) % 2) ? 5 : -5;
         }
     }
 
-    // [3] 최종 출력 범위 제한 (DShot 패킷 규격 준수)
-    for (int i = 0; i < mixerRuntime.motorCount; i++) {
-        if (ARMING_FLAG(ARMED)) {
-            motor[i] = constrainf(motor[i], mixerRuntime.motorOutputLow, mixerRuntime.motorOutputHigh);
-        } else {
-            motor[i] = mixerRuntime.disarmMotorOutput;
-        }
-    } // 변조끝   
-  
-    }
+    // 최종 안전 처리 (값이 범위를 벗어나지 않게 한 번 더 잡아줌)
+    motor[0] = constrainf(motor[0], mixerRuntime.motorOutputLow, mixerRuntime.motorOutputHigh);
 } // mixTable 함수 끝
 
 void mixerSetThrottleAngleCorrection(int correctionValue)
