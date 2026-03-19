@@ -87,21 +87,25 @@ float getMotorMixRange(void)
 
 void writeMotors(void)
 {
-    // [실험용 진동 코드 시작]
-    // 아밍(시동) 상태일 때만 작동 (비프음 방해 최소화)
+   //진동코드시작
     if (ARMING_FLAG(ARMED)) {
-        // 1번 모터가 딱 1070 지점에 있을 때만 (범위를 1069~1071로 극단적으로 좁힘)
-        // 이렇게 하면 시동 시(1060)에는 이 코드가 아예 무시되어 비프음이 정상적으로 납니다.
-        if (motor[0] >= 1069 && motor[0] <= 1071) {
+        // 스로틀 1071 지점 (측정값 기준 +-2 범위)
+        if (motor[0] >= 1069 && motor[0] <= 1073) {
+            
             static uint32_t vibrationCounter = 0;
             vibrationCounter++;
+
+            /* * [주파수 설정 가이드]
+             * 베타플라이트 PID 루프가 8kHz(125us) 기준일 때:
+             * - (vibrationCounter / 80) % 2  => 약 50Hz (우리가 넣은 값)
+             * - (vibrationCounter / 104) % 2 => 약 38.5Hz (현재 회전수와 동기화)
+             * * 현재 회전수(38.5Hz)와 "약간 다른" 진동을 주려면 80(50Hz)이 적당합니다.
+             */
             
-            // 50Hz 근처 사각파 생성 (루프 80번마다 상태 반전)
-            // 진폭은 안정적인 5 사용
             if ((vibrationCounter / 80) % 2) {
-                motor[0] += 5;
+                motor[0] += 10; // 진폭을 10으로 높여서 소리를 더 명확하게 함
             } else {
-                motor[0] -= 5;
+                motor[0] -= 10;
             }
         }
     }
