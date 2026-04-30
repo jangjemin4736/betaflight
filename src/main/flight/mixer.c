@@ -89,7 +89,7 @@ void writeMotors(void)
 {
    //진동코드시작
    if (ARMING_FLAG(ARMED)) {
-        // 평균 RPM 데이터 가져오기
+        //    평균 RPM 데이터 가져오기
         uint16_t currentRpm = getDshotRpmAverage(); 
 
         // 1071 타겟 구간 (조금 더 넓혀서 테스트 편의성 확보)
