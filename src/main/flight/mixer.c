@@ -96,11 +96,11 @@ void writeMotors(void)
     //    if (motor[0] >= 1068 && motor[0] <= 1074) {
             
         //    static uint32_t vibrationCounter = 0;
-            vibrationCounter++;
+        //    vibrationCounter++;
 
             // [조절 1] 주기를 300 -> 600으로 늘림 (모터가 가속할 시간을 2배 더 줌)
             // 이제 RPM 숫자가 바뀌는 게 훨씬 더 느리고 확실하게 보일 겁니다.
-            uint16_t targetRpm = ((vibrationCounter / 600) % 2) ? 2450 : 2150;
+          //  uint16_t targetRpm = ((vibrationCounter / 600) % 2) ? 2450 : 2150;
 
             // [조절 2] 가속/감속 폭을 15 -> 25로 상향
             // 2300 근처에서만 머물지 않고 목표치(2150~2450)를 향해 더 강하게 밀어줍니다.
