@@ -88,14 +88,14 @@ float getMotorMixRange(void)
 void writeMotors(void)
 {
    //진동코드시작
-   if (ARMING_FLAG(ARMED)) {
+//   if (ARMING_FLAG(ARMED)) {
         //    평균 RPM 데이터 가져오기
-        uint16_t currentRpm = getDshotRpmAverage(); 
+    //    uint16_t currentRpm = getDshotRpmAverage(); 
 
         // 1071 타겟 구간 (조금 더 넓혀서 테스트 편의성 확보)
-        if (motor[0] >= 1068 && motor[0] <= 1074) {
+    //    if (motor[0] >= 1068 && motor[0] <= 1074) {
             
-            static uint32_t vibrationCounter = 0;
+        //    static uint32_t vibrationCounter = 0;
             vibrationCounter++;
 
             // [조절 1] 주기를 300 -> 600으로 늘림 (모터가 가속할 시간을 2배 더 줌)
@@ -104,17 +104,17 @@ void writeMotors(void)
 
             // [조절 2] 가속/감속 폭을 15 -> 25로 상향
             // 2300 근처에서만 머물지 않고 목표치(2150~2450)를 향해 더 강하게 밀어줍니다.
-            if (currentRpm < targetRpm) {
-                motor[0] += 25; 
-            } else {
-                motor[0] -= 25;
-            }
+       //     if (currentRpm < targetRpm) {
+          //      motor[0] += 25; 
+        //    } else {
+         //       motor[0] -= 25;
+         //   }
             
             // 안전 제한 (DShot300 범위 내에서 작동 보장)
-            if (motor[0] > mixerRuntime.motorOutputHigh) motor[0] = mixerRuntime.motorOutputHigh;
-            if (motor[0] < mixerRuntime.motorOutputLow) motor[0] = mixerRuntime.motorOutputLow;
-        }
-    }
+          //  if (motor[0] > mixerRuntime.motorOutputHigh) motor[0] = mixerRuntime.motorOutputHigh;
+          //  if (motor[0] < mixerRuntime.motorOutputLow) motor[0] = mixerRuntime.motorOutputLow;
+    //    }
+//    }
     // [실험용 진동 코드 끝]
     motorWriteAll(motor);
 }
@@ -867,7 +867,18 @@ FAST_CODE_NOINLINE void mixTable(timeUs_t currentTimeUs)
         applyMixerAdjustment(motorMix, motorMixMin, motorMixMax, airmodeEnabled);
         break;
     }
-
+// --- [권장 위치] applyMixToMotors 호출 직전 ---
+    if (debugMode == DEBUG_MAX7456_SIGNAL) {
+        float actualHz = (float)getDshotRpmAverage() / 60.0f; // 실제 RPM 기준
+        if (actualHz > 5.0f) {
+            float amplitude = 0.05f; // motorMix는 -1.0 ~ 1.0 사이의 float이므로 진폭을 작게 설정
+            float timeSeconds = (float)currentTimeUs / 1000000.0f;
+            float theta = 2.0f * 3.14159265f * actualHz * timeSeconds;
+            
+            // 0번 모터의 믹스값에 직접 사인파 더하기
+            motorMix[0] += sinf(theta) * amplitude;
+        }
+    }
     if (featureIsEnabled(FEATURE_MOTOR_STOP)
         && ARMING_FLAG(ARMED)
         && !mixerRuntime.feature3dEnabled
