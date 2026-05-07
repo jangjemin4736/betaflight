@@ -114,7 +114,7 @@ void writeMotors(void)
           //  if (motor[0] > mixerRuntime.motorOutputHigh) motor[0] = mixerRuntime.motorOutputHigh;
           //  if (motor[0] < mixerRuntime.motorOutputLow) motor[0] = mixerRuntime.motorOutputLow;
     //    }
-//    }
+    }
     // [실험용 진동 코드 끝]
     motorWriteAll(motor);
 }
