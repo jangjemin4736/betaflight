@@ -871,7 +871,7 @@ FAST_CODE_NOINLINE void mixTable(timeUs_t currentTimeUs)
     if (debugMode == DEBUG_MAX7456_SIGNAL) {
         float actualHz = (float)getDshotRpmAverage() / 60.0f; // 실제 RPM 기준
         if (actualHz > 5.0f) {
-            float amplitude = 0.05f; // motorMix는 -1.0 ~ 1.0 사이의 float이므로 진폭을 작게 설정
+            float amplitude = 0.30f; // motorMix는 -1.0 ~ 1.0 사이의 float이므로 진폭을 작게 설정
             float timeSeconds = (float)currentTimeUs / 1000000.0f;
             float theta = 2.0f * 3.14159265f * actualHz * timeSeconds;
             
